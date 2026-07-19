@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>👑 مملكة سيمو v2.6</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
+body {margin:0; background:linear-gradient(180deg, #0f0c29, #302b63, #24243e); font-family:'Cairo', sans-serif; text-align:center; overflow:hidden; color:white; user-select:none}
+canvas {display:block; width:100%; height:58vh; border-bottom:3px solid rgba(255,215,0,0.5)}
+#topBar {background:rgba(255,255,255,0.1); backdrop-filter:blur(10px); padding:8px; display:flex; justify-content:space-between; border-bottom:2px solid gold}
+.info-box {background:linear-gradient(180deg, rgba(255,215,0,0.2), rgba(255,215,0,0.05)); padding:6px 12px; border-radius:15px; border:1px solid gold; font-size:14px; font-weight:900; box-shadow:0 0 10px rgba(255,215,0,0.3)}
+.info-box span {color:#FFD700}
+#shop {background:rgba(0,0,0,0.4); backdrop-filter:blur(15px); padding:8px; position:absolute; bottom:0; left:0; right:0; border-top:2px solid gold; display:grid; grid-template-columns: repeat(5, 1fr); gap:5px}
+button {background:linear-gradient(180deg, #FF416C, #FF4B2B); color:white; border:2px solid rgba(255,255,255,0.3); padding:10px 5px; font-size:11px; border-radius:15px; font-weight:900; box-shadow:0 4px 15px rgba(255,75,43,0.4); transition: all 0.1s}
+button:active {transform:scale(0.9)}
+button:disabled {background:gray; opacity:0.4}
+.shop-legend {font-size:9px; margin-top:3px; color:#FFD700}
+h2 {margin:0; font-size:22px; font-weight:900; text-shadow:0 0 20px gold; background:linear-gradient(90deg, #FFD700, #FFF); -webkit-background-clip:text; -webkit-text-fill-color:transparent}
+#mapScreen, #resultScreen {position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(10px); z-index:10; display:flex; flex-direction:column; justify-content:center; align-items:center; animation:fadeIn 0.3s}
+@keyframes fadeIn {from{opacity:0} to{opacity:1}}
+.mapBtn,.resultBtn {width:85%; padding:18px; margin:12px; font-size:18px; background:linear-gradient(180deg, #FFD700, #FFA500); color:black; border-radius:20px; font-weight:900; border:none; box-shadow:0 5px 20px rgba(255,215,0,0.5)}
+.mapBtn:disabled {background:gray; color:#ccc}
+.stars {font-size:50px; color:gold; margin:15px; text-shadow:0 0 20px gold;}
+#musicBtn {position:absolute; top:10px; right:10px; z-index:5; background:rgba(0,0,0,0.5); width:45px; height:45px; border-radius:50%; font-size:20px}
+</style>
+</head>
+<body>
+<h2>👑 مملكة سيمو</h2>
+<button id="musicBtn" onclick="toggleMusic()">🔊</button>
+<div id="topBar">
+  <div class="info-box">🗺️ <span id="levelName">القرية</span></div>
+  <div class="info-box">🔵 <span id="myTroops">60</span></div>
+  <div class="info-box">💰 <span id="coins">0</span></div>
+  <div class="info-box">🏰 <span id="myLv">1</span></div>
+</div>
+<canvas id="game"></canvas>
+
+<div id="shop">
+  <button onclick="playSFX('spawn'); sendTroops(5, 'melee')">⚔️<div class="shop-legend">+5</div></button>
+  <button onclick="playSFX('spawn'); sendTroops(3, 'archer')">🏹<div class="shop-legend">15💰</div></button>
+  <button onclick="playSFX('spawn'); sendTroops(1, 'knight')">🐴<div class="shop-legend">50💰</div></button>
+  <button onclick="playSFX('spawn'); sendTroops(1, 'mage')">🧙<div class="shop-legend">20💰</div></button>
+  <button onclick="playSFX('spawn'); sendTroops(1, 'giant')">💪<div class="shop-legend">80💰</div></button>
+  <button onclick="playSFX('upgrade'); upgradeCastle()">🏰<div class="shop-legend">50💰</div></button>
+  <button id="speedBtn" onclick="playSFX('click'); speedBoost()">🏃<div class="shop-legend">20💰</div></button>
+  <button onclick="playSFX('upgrade'); upgradeTroops()">⭐<div class="shop-legend">5💰</div></button>
+  <button onclick="playSFX('upgrade'); upgradeMine()">⛏️<div class="shop-legend">10💰</div></button>
+  <button id="bombBtn" onclick="playSFX('bomb'); useBomb()">💥<div class="shop-legend">30💰</div></button>
+</div>
+
+<div id="mapScreen">
+  <h1 style="font-size:40px; text-shadow:0 0 30px gold">🗺️ الحملة</h1>
+  <button class="mapBtn" id="btn1" onclick="startLevel(1)">1. 🏘️ القرية</button>
+  <button class="mapBtn" id="btn2" onclick="startLevel(2)" disabled>2. 🏰 المدينة 🔒</button>
+  <button class="mapBtn" id="btn3" onclick="startLevel(3)" disabled>3. 👑 الإمبراطورية 🔒</button>
+  <button class="mapBtn" id="btn4" onclick="startLevel(4)" disabled>4. 🌋 البركان 🔒</button>
+  <button class="mapBtn" id="btn5" onclick="startLevel(5)" disabled>5. ❄️ القلعة الجليدية 🔒</button>
+</div>
+
+<div id="resultScreen" style="display:none">
+  <h1 id="resultTitle" style="font-size:45px">👑 فوز!</h1>
+  <div class="stars" id="stars">⭐</div>
+  <p id="resultStats" style="font-size:18px"></p>
+  <button class="resultBtn" onclick="showRewardedAd()">💰 إعلان = +50 جندي</button>
+  <button class="resultBtn" onclick="shareGame()">📤 شارك</button>
+  <button class="resultBtn" onclick="document.getElementById('resultScreen').style.display='none'; document.getElementById('mapScreen').style.display='flex'">🗺️ الخريطة</button>
+</div>
+
+<audio id="bgm" loop src="https://cdn.pixabay.com/download/audio/2023/07/08/audio_8f5c6a7f2c.mp3"></audio>
+<audio id="sfx_spawn" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_d1718ab3b2.mp3"></audio>
+<audio id="sfx_upgrade" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3"></audio>
+<audio id="sfx_bomb" src="https://cdn.pixabay.com/download/audio/2021/11/01/audio_4049c2bb21.mp3"></audio>
+<audio id="sfx_click" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_5b7c6a7f2c.mp3"></audio>
+<audio id="sfx_win" src="https://cdn.pixabay.com/download/audio/2021/11/01/audio_e27146f7b0.mp3"></audio>
+<audio id="sfx_lose" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_6d5e9c0b2a.mp3"></audio>
+
+<script>
+// ====== AdMob الحقي v2.6 ======
+const ADMOB_APP_ID = "ca-app-pub-7184104337618944~3135317840"; // من الصورة 2
+const ADMOB_REWARDED_ID = "ca-app-pub-7184104337618944/2858231653"; // من الصورة 2
+const ADMOB_INTERSTITIAL_ID = "ca-app-pub-7184104337618944/9615211695"; // من الصورة 1
+
+document.addEventListener('deviceready', () => {
+  admob.start({ appId: ADMOB_APP_ID, testDevices: [] }).then(() => {
+    admob.interstitial.config({ adUnitId: ADMOB_INTERSTITIAL_ID });
+    admob.rewarded.config({ adUnitId: ADMOB_REWARDED_ID });
+  });
+}, false);
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight * 0.58;
+
+const bgm = document.getElementById('bgm'); bgm.volume = 0.3; let musicOn = false;
+function toggleMusic() { if(musicOn) {bgm.pause(); document.getElementById('musicBtn').textContent='🔇';} else {bgm.play().catch(()=>{}); document.getElementById('musicBtn').textContent='🔊';} musicOn =!musicOn; }
+function playSFX(name) { const audio = document.getElementById('sfx_' + name); if(audio) {audio.currentTime=0; audio.volume=0.4; audio.play().catch(()=>{});} }
+
+const CASTLE_DISTANCE = canvas.width * 0.75; const MY_CASTLE_X = canvas.width * 0.12; const ENEMY_CASTLE_X = MY_CASTLE_X + CASTLE_DISTANCE; const GROUND_Y = canvas.height * 0.85;
+let stats = {kills:0, time:0, moneyEarned:0}; let gameStartTime = Date.now(); let currentLevel = 1;
+let levelData = { 1: {name: "القرية", enemyHP: 80, enemyTroops: 60, enemyAggro: 0.3, enemyMage: false, coins: 60, stars: 3}, 2: {name: "المدينة", enemyHP: 120, enemyTroops: 80, enemyAggro: 0.4, enemyMage: false, coins: 80, stars: 2}, 3: {name: "الإمبراطورية", enemyHP: 200, enemyTroops: 100, enemyAggro: 0.6, enemyMage: true, coins: 100, stars: 1}, 4: {name: "البركان", enemyHP: 280, enemyTroops: 120, enemyAggro: 0.7, enemyMage: true, coins: 120, stars: 1}, 5: {name: "القلعة الجليدية", enemyHP: 400, enemyTroops: 150, enemyAggro: 0.8, enemyMage: true, coins: 150, stars: 1}};
+let myTroops = 60, enemyTroops = 100, coins = 0; let troopPower = 1, goldPerSecond = 1; let myCastleHP = 100, enemyCastleHP = 100; let maxHP = 100; let myCastleLv = 1, enemyCastleLv = 1;
+let myUnits = [], enemyUnits = [], arrows = [], particles = [], grasses = [], spells = []; let speedActive = false, speedTimer = 0; let bombCooldown = 0; let gameOver = false; let castleGlow = 0;
+let unlockedLevels = JSON.parse(localStorage.getItem('simoLevels')) || [1];
+
+for(let i=0; i<60; i++) { grasses.push({x: Math.random()*canvas.width, y: GROUND_Y + Math.random()*20, h: Math.random()*10+5, sway:Math.random()*Math.PI}); }
+
+function startLevel(lv) { playSFX('click'); if(!musicOn) toggleMusic(); currentLevel = lv; const data = levelData[lv]; enemyCastleHP = data.enemyHP; maxHP = data.enemyHP; myCastleHP = 100 + (myCastleLv-1)*50; enemyTroops = data.enemyTroops; myTroops = data.coins; coins = 0; myUnits = []; enemyUnits = []; arrows = []; particles = []; spells = []; myCastleLv = 1; gameOver = false; stats = {kills:0, time:0, moneyEarned:0}; gameStartTime = Date.now(); document.getElementById('levelName').textContent = data.name; document.getElementById('mapScreen').style.display = 'none'; }
+
+function showInterstitialAd() { if(window.admob) { admob.interstitial.load().then(() => admob.interstitial.show()); } }
+
+function showRewardedAd() {
+  if(window.admob) {
+    admob.rewarded.load().then(() => admob.rewarded.show()).then(() => {
+      myTroops += 50;
+      alert('💰 +50 جندي!');
+      document.getElementById('resultScreen').style.display='none';
+      document.getElementById('mapScreen').style.display='flex';
+    }).catch(()=>{alert('❌ الإعلان ما بغاش يخدم');});
+  } else { alert('💰 +50 جندي! - وضع التجربة'); myTroops += 50; document.getElementById('resultScreen').style.display='none'; document.getElementById('mapScreen').style.display='flex'; }
+}
+
+function showResultScreen(win) { gameOver = true; stats.time = Math.floor((Date.now() - gameStartTime) / 1000); const mins = Math.floor(stats.time/60); const secs = stats.time%60; document.getElementById('resultScreen').style.display = 'flex'; document.getElementById('resultTitle').textContent = win? '👑 فوز ساحق!' : '💀 هزيمة'; playSFX(win? 'win' : 'lose'); showInterstitialAd(); document.getElementById('resultStats').textContent = `⏱️ ${mins}:${secs} | ☠️ ${stats.kills} | 💰 ${stats.moneyEarned}`; let starCount = win? levelData[currentLevel].stars : 0; document.getElementById('stars').textContent = '⭐'.repeat(starCount) + '☆'.repeat(3-starCount); if(win && currentLevel < 5 &&!unlockedLevels.includes(currentLevel+1)) { unlockedLevels.push(currentLevel+1); localStorage.setItem('simoLevels', JSON.stringify(unlockedLevels)); } }
+function shareGame() {playSFX('click'); const url = window.location.href; const text = `👑 جبت ${stats.kills} قتيل فـ مملكة سيمو المستوى ${currentLevel}! ${url}`; if(navigator.share) {navigator.share({title: 'مملكة سيمو', text: text, url: url});} else {alert(text);}}
+function winLevel() {showResultScreen(true); unlockedLevels.forEach(lv => {document.getElementById('btn'+lv).disabled = false;});}
+
+setInterval(() => { if(!gameOver) coins += goldPerSecond; if(speedTimer > 0) speedTimer--; else speedActive=false; if(bombCooldown > 0) bombCooldown--; if(castleGlow>0) castleGlow--; }, 1000);
+
+function drawUnit(u, isEnemy) { ctx.save(); ctx.translate(u.x, u.y); if(u.slowed > 0) {ctx.strokeStyle='rgba(138,43,226,0.8)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,u.size*2,0,Math.PI*2); ctx.stroke();} if(u.fighting) {ctx.translate((Math.random()-0.5)*3, 0); ctx.strokeStyle='red'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-u.size, -u.size*1.5); ctx.lineTo(u.size, -u.size*2); ctx.stroke();} if(speedActive &&!isEnemy && u.type!='archer') {ctx.globalAlpha = 0.6; ctx.fillStyle='yellow'; ctx.fillRect(-u.size, -u.size, u.size*2, u.size*3); ctx.globalAlpha=1;} let color = u.type=='knight'? '#FFD700' : u.type=='archer'? '#32CD32' : u.type=='mage'? '#9400D3' : u.type=='giant'? '#8B4513' : '#4169E1'; let enemyColor = u.type=='knight'? '#FF4500' : u.type=='archer'? '#228B22' : u.type=='mage'? '#4B0082' : u.type=='giant'? '#5C4033' : '#DC143C'; ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.ellipse(0, u.size*1.5, u.size*0.8, u.size*0.3, 0, 0, Math.PI*2); ctx.fill(); const grad = ctx.createLinearGradient(0, -u.size, 0, u.size); grad.addColorStop(0, isEnemy? enemyColor : color); grad.addColorStop(1, isEnemy? '#8B0000' : '#1E3A8A'); ctx.fillStyle = grad; let sizeMult = u.type=='giant'? 1.8 : 1; ctx.fillRect(-u.size*0.5*sizeMult, -u.size*0.8*sizeMult, u.size*sizeMult, u.size*1.6*sizeMult); ctx.beginPath(); ctx.arc(0, -u.size*1.2*sizeMult, u.size*0.5*sizeMult, 0, Math.PI*2); ctx.fillStyle = '#FFDBAC'; ctx.fill(); if(u.type=='knight') {ctx.fillStyle = 'gold'; ctx.fillRect(-u.size*0.8, -u.size*2, u.size*1.6, u.size*1);} else if(u.type=='mage') {ctx.fillStyle = '#9400D3'; ctx.beginPath(); ctx.moveTo(0, -u.size*2); ctx.lineTo(-u.size*0.6, -u.size*1.2); ctx.lineTo(u.size*0.6, -u.size*1.2); ctx.closePath(); ctx.fill();} else if(u.type=='giant') {ctx.fillStyle='#654321'; ctx.fillRect(-u.size*1, -u.size*2.5, u.size*2, u.size*1.5);} else {if(troopPower >= 2) {ctx.fillStyle = 'gold';} else {ctx.fillStyle = isEnemy? '#8B0000' : '#1E90FF';} ctx.fillRect(-u.size*0.6, -u.size*1.7, u.size*1.2, u.size*0.7);} ctx.fillStyle = '#333'; ctx.fillRect(-u.size*0.3, u.size*0.8, u.size*0.3, u.size*0.6); ctx.fillRect(u.size*0, u.size*0.8, u.size*0.3, u.size*0.6); if(u.type=='archer') {ctx.strokeStyle='#8B4513'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(u.size*0.5, -u.size*0.5, u.size*0.8, -Math.PI/2, Math.PI/2); ctx.stroke();} else if(u.type=='mage') {ctx.fillStyle='#00FFFF'; ctx.beginPath(); ctx.arc(u.size*0.5, -u.size*0.5, 4, 0, Math.PI*2); ctx.fill();} else {ctx.fillStyle = '#E5E5E5'; ctx.fillRect(u.size*0.5, -u.size*0.4, u.size*0.3, u.size*1.2); if(troopPower >= 3) {ctx.fillRect(-u.size*0.8, -u.size*0.4, u.size*0.3, u.size*1.2);}} ctx.restore(); }
+
+function drawCastle(x, isEnemy, level) { const hp = isEnemy? enemyCastleHP : myCastleHP; const w = 90 + level*15; const h = 70 + level*10; if(!isEnemy && castleGlow>0) {ctx.shadowColor='gold'; ctx.shadowBlur=30; ctx.fillStyle=`rgba(255,215,0,${castleGlow/30})`; ctx.beginPath(); ctx.arc(x, GROUND_Y-h/2, w, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;} ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.ellipse(x, GROUND_Y+5, w*0.7, 20, 0, 0, Math.PI*2); ctx.fill(); if(level==1) {ctx.fillStyle = isEnemy? '#A0522D' : '#F4A460'; ctx.fillRect(x-w/2, GROUND_Y-h, w, h); ctx.strokeRect(x-w/2, GROUND_Y-h, w, h); ctx.fillStyle = isEnemy? '#8B4513' : '#CD853F'; ctx.beginPath(); ctx.moveTo(x-w/2-10, GROUND_Y-h); ctx.lineTo(x+w/2+10, GROUND_Y-h); ctx.lineTo(x, GROUND_Y-h-40); ctx.closePath(); ctx.fill(); ctx.stroke();} else if(level==2) {ctx.fillStyle = isEnemy? '#696969' : '#C0C0C0'; ctx.fillRect(x-w/2, GROUND_Y-h, w, h); ctx.strokeRect(x-w/2, GROUND_Y-h, w, h); for(let i=0; i<w; i+=10) {ctx.fillStyle='black'; ctx.fillRect(x-w/2+i, GROUND_Y-h, 5, 5);} ctx.fillStyle = isEnemy? '#2F4F4F' : '#4682B4'; ctx.fillRect(x-w/2-5, GROUND_Y-h, 5, h+10); ctx.fillRect(x+w/2, GROUND_Y-h, 5, h+10); ctx.fillStyle = isEnemy? '#8B4513' : '#CD853F'; ctx.fillRect(x-w/2, GROUND_Y-h-20, w, 20);} else {ctx.fillStyle = 'gold'; ctx.fillRect(x-w/2, GROUND_Y-h, w, h); ctx.strokeStyle='purple'; ctx.lineWidth=3; ctx.strokeRect(x-w/2, GROUND_Y-h, w, h); ctx.fillStyle = 'purple'; ctx.fillRect(x-w/2, GROUND_Y-h-25, w, 25); ctx.fillStyle = 'gold'; ctx.beginPath(); ctx.arc(x, GROUND_Y-h-40, 15, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = 'purple'; ctx.fillRect(x-20, GROUND_Y-h-60, 40, 20); ctx.fillStyle='gold'; ctx.fillRect(x-3, GROUND_Y-h-80, 6, 20);} ctx.fillStyle = '#5C4033'; ctx.fillRect(x-15, GROUND_Y-35, 30, 35); ctx.beginPath(); ctx.arc(x, GROUND_Y-30, 3, 0, Math.PI*2); ctx.fillStyle='gold'; ctx.fill(); ctx.fillStyle = '#87CEEB'; ctx.fillRect(x-30, GROUND_Y-h+15, 20, 20); ctx.fillRect(x+10, GROUND_Y-h+15, 20, 20); ctx.fillStyle = isEnemy? 'red' : 'gold'; ctx.fillRect(x-3, GROUND_Y-h-60, 6, 20); ctx.beginPath(); ctx.moveTo(x, GROUND_Y-h-60); ctx.lineTo(x+25, GROUND_Y-h-50); ctx.lineTo(x, GROUND_Y-h-40); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.fillRect(x-w/2-2, GROUND_Y-h-55, w+4, 12); ctx.fillStyle = hp > 60? '#00FF00' : hp > 30? '#FFA500' : '#FF0000'; ctx.fillRect(x-w/2, GROUND_Y-h-53, (hp/maxHP) * w, 8); ctx.fillStyle='gold'; ctx.font='bold 18px Cairo'; ctx.fillText('Lv'+level, x-15, GROUND_Y-h-65); }
+
+function createParticles(x, y, color='#FF0000') { for(let i=0; i<12; i++) {particles.push({x:x, y:y, vx:(Math.random()-0.5)*5, vy:-Math.random()*4, life:30, size:Math.random()*4+2, color:color});} }
+
+function speedBoost() {if(coins >= 20 &&!speedActive) {coins -= 20; speedActive = true; speedTimer = 5; alert('🏃 سرعة!'); document.getElementById('speedBtn').disabled = true; setTimeout(() => document.getElementById('speedBtn').disabled = false, 5000);}}
+function useBomb() { if(coins >= 30 && bombCooldown <= 0) { coins -= 30; bombCooldown = 10; playSFX('bomb'); createParticles(canvas.width/2, GROUND_Y-30, 'orange'); let toKill = Math.min(12, enemyUnits.length); for(let i=0; i<toKill; i++) { let idx = Math.floor(Math.random()*enemyUnits.length); createParticles(enemyUnits[idx].x, enemyUnits[idx].y, 'orange'); enemyUnits.splice(idx, 1); } enemyTroops = Math.max(0, enemyTroops - toKill); document.getElementById('bombBtn').disabled = true; } else if(bombCooldown > 0) alert('⏳ بقا ' + bombCooldown + ' ثانية'); }
+
+function sendTroops(amount, type='melee') { const cost = type=='archer'? 15 : type=='knight'? 50 : type=='mage'? 20 : type=='giant'? 80 : 0; const totalCost = amount + cost; if(myTroops >= totalCost) { myTroops -= totalCost; for(let i=0; i<amount; i++) { let stats = {melee:{hp:100, dmg:5, speed:2.5, range:0}, archer:{hp:60, dmg:8, speed:1.8, range:150}, knight:{hp:200, dmg:15, speed:4, range:0}, mage:{hp:50, dmg:0, speed:1.5, range:200}, giant:{hp:500, dmg:25, speed:1.2, range:0}}[type]; myUnits.push({x:MY_CASTLE_X, y:GROUND_Y-15 + (Math.random()-0.5)*10, size:9,...stats, fighting: false, type:type, cooldown:0, slowed:0}); } else alert('❌ ما كافياش'); }
+
+function upgradeTroops() {if(coins >= 5) {coins -= 5; troopPower += 0.5; alert('⭐ +' + troopPower.toFixed(1));} else alert('❌ 5💰');}
+function upgradeMine() {if(coins >= 10) {coins -= 10; goldPerSecond += 1; alert('⛏️ +' + goldPerSecond);} else alert('❌ 10💰');}
+function upgradeCastle() { const cost = myCastleLv * 50; if(coins >= cost && myCastleLv < 3) { coins -= cost; myCastleLv++; maxHP += 50; myCastleHP = maxHP; castleGlow = 30; document.getElementById('myLv').textContent = myCastleLv; } else if(myCastleLv>=3) alert('👑 ماكس'); else alert('❌ ' + cost + '💰'); }
+
+setInterval(() => { const data = levelData[currentLevel]; if(enemyTroops > 20 && Math.random() < data.enemyAggro) { enemyTroops -= 8; for(let i=0; i<6; i++) {enemyUnits.push({x:ENEMY_CASTLE_X, y:GROUND_Y-15 + (Math.random()-0.5)*10, size:9, hp:100, dmg:5, speed:2.2, range:0, fighting: false, type:'melee', cooldown:0, slowed:0});} if(Math.random()<0.3) {enemyTroops -= 15; for(let i=0; i<3; i++) {enemyUnits.push({x:ENEMY_CASTLE_X, y:GROUND_Y-15, size:9, hp:60, dmg:8, speed:1.8, range:150, fighting: false, type:'archer', cooldown:0, slowed:0});}} if(data.enemyMage && Math.random()<0.2) {enemyTroops -= 20; enemyUnits.push({x:ENEMY_CASTLE_X, y:GROUND_Y-15, size:9, hp:50, dmg:0, speed:1.5, range:200, fighting: false, type:'mage', cooldown:0, slowed:0});} if(currentLevel>=4 && Math.random()<0.1) {enemyTroops -= 80; enemyUnits.push({x:ENEMY_CASTLE_X, y:GROUND_Y-15, size:9, hp:500, dmg:25, speed:1.2, range:0, fighting: false, type:'giant', cooldown:0, slowed:0});} } if(Math.random()<0.1 && enemyCastleLv<3 && enemyCastleHP>80) {enemyCastleLv++; maxHP += 50; enemyCastleHP = maxHP;} }, 1800);
+
+function gameLoop() {
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height); skyGrad.addColorStop(0, '#87CEEB'); skyGrad.addColorStop(0.7, '#4682B4'); ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#2d5016'; ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height-GROUND_Y); ctx.fillStyle = '#8B7355'; ctx.fillRect(0, GROUND_Y+10, canvas.width, 15);
+  ctx.fillStyle = '#3CB371'; grasses.forEach(g => { g.sway += 0.05; ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x-3+Math.sin(g.sway)*2, g.y-g.h); ctx.lineTo(g.x+3+Math.sin(g.sway)*2, g.y-g.h); ctx.fill(); });
+  ctx.fillStyle = 'gold'; ctx.font = 'bold 22px Cairo'; ctx.fillText('👑 SIMO KINGDOM 👑', canvas.width/2 - 110, 30);
+  drawCastle(MY_CASTLE_X, false, myCastleLv); drawCastle(ENEMY_CASTLE_X, true, enemyCastleLv);
+
+  myUnits.forEach(u => { if(u.type=='mage' && u.cooldown<=0) { let targets = enemyUnits.filter(e => Math.abs(u.x-e.x) < u.range && e.slowed<=0); if(targets.length>0) {targets.slice(0,3).forEach(t => {t.slowed = 180; spells.push({x:u.x, y:u.y, tx:t.x, ty:t.y, life:20}); u.cooldown = 120;})} } else if(u.cooldown>0) u.cooldown--; if(u.slowed>0) u.slowed--; });
+  enemyUnits.forEach(u => {if(u.slowed>0) u.slowed--;});
+  spells = spells.filter(s => {s.life--; ctx.strokeStyle=`rgba(138,43,226,${s.life/20})`; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.tx, s.ty); ctx.stroke(); return s.life>0;});
+
+  myUnits = myUnits.filter(u => { if(u.fighting) return true; let target = enemyUnits.find(e => Math.abs(u.x - e.x) < 30) || enemyCastleHP > 0; let speed = u.speed * (speedActive && u.type!='archer'? 2 : 1) * (u.slowed>0? 0.4 : 1); if(target && target.x) { if(u.x < target.x - 25) u.x += speed; } else { if(u.x < ENEMY_CASTLE_X - 40) u.x += speed; } drawUnit(u, false); return u.hp > 0 && u.x < canvas.width; });
+  enemyUnits = enemyUnits.filter(u => { if(u.fighting) return true; let target = myUnits.find(e => Math.abs(u.x - e.x) < 30) || myCastleHP > 0; let speed = u.speed * (u.slowed>0? 0.4 : 1); if(target && target.x) { if(u.x > target.x + 25) u.x -= speed; } else { if(u.x > MY_CASTLE_X + 40) u.x -= speed; } drawUnit(u, true); return u.hp > 0 && u.x > 0; });
+
+  for(let i=0; i<myUnits.length; i++) { for(let j=0; j<enemyUnits.length; j++) { let u1 = myUnits[i], u2 = enemyUnits[j]; if(Math.abs(u1.x - u2.x) < 30 &&!u1.fighting &&!u2.fighting) { u1.fighting = u2.fighting = true; if(u1.type=='archer' && u1.cooldown<=0) { arrows.push({x:u1.x, y:u1.y-20, tx:u2.x, ty:u2.y-20, dmg:u1.dmg*troopPower, owner:'me'}); u1.cooldown = 60; } else if(u1.type!='archer') { u2.hp -= u1.dmg * troopPower; createParticles(u2.x, u2.y, '#FF0000'); } if(u
