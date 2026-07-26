@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>👑 مملكة سيمو v2.5</title>
 <style>
-<link rel="manifest" href="Manifest">
-<meta name="theme-color" content="#4CAF50">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#FF0000">
 
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
 body {margin:0; background:linear-gradient(180deg, #0f0c29, #302b63, #24243e); font-family:'Cairo', sans-serif; text-align:center; overflow:hidden; color:white; user-select:none}
