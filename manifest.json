@@ -1,11 +1,17 @@
 {
-  "name": "مملكة سيمو",
-  "short_name": "مملكة سيمو",
-  "description": "لعبة حرب استراتيجية - بني جيشك و هاجم الممالك",
+  "name": "لعبة النقر سيمو",
+  "short_name": "سيمو كليكر",
+  "description": "لعبة خفيفة للنقر و جمع الفلوس",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0f0c29",
   "theme_color": "#FFD700",
   "scope": "./",
-  "icons": []
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1384/1384060.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
