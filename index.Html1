@@ -1,30 +1,110 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لعبة النقر سيمو</title>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#FFD700">
+<title>Zombie Shooter - طنجة</title>
 <style>
-body {margin:0; background:#0f0c29; color:white; font-family:'Arial'; text-align:center; padding-top:50px}
-h1 {font-size:40px; color:#FFD700}
-#score {font-size:60px; font-weight:900}
-button {width:200px; height:200px; border-radius:50%; font-size:30px; background:linear-gradient(180deg, #FF416C, #FF4B2B); color:white; border:none; margin-top:30px; box-shadow:0 0 30px gold}
-button:active {transform:scale(0.9)}
+  body { margin:0; background:#0a0a0a; overflow:hidden; font-family:sans-serif; color:white; text-align:center; }
+  canvas { background: #1a1a1a; display:block; margin:auto; border:2px solid #333; }
+  #ui { position:absolute; top:10px; width:100%; font-size:18px; font-weight:bold; }
 </style>
 </head>
 <body>
-<h1>👑 لعبة النقر سيمو</h1>
-<p>جمع الفلوس</p>
-<div id="score">0</div>
-<button onclick="clickMe()">💰 اضغط</button>
+<div id="ui">النقاط: 0 | الليفيل: 1 | الدم: 100</div>
+<canvas id="game" width="400" height="600"></canvas>
 
 <script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const ui = document.getElementById("ui");
+
+// اللاعب الراجا
+let player = { x: 200, y: 550, hp: 100 };
+
+let zombies = [];
+let bullets = [];
 let score = 0;
-function clickMe(){ score++; document.getElementById('score').textContent = score; }
-if('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
+let level = 1;
+let zombieSpeed = 0.8;
+
+// تحريك الراجا بالماوس
+canvas.addEventListener("mousemove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  player.x = e.clientX - rect.left;
+});
+
+// الضرب
+canvas.addEventListener("click", () => {
+  bullets.push({ x: player.x, y: player.y - 20 });
+});
+
+// كيخرج زومبي
+function spawnZombie() {
+  zombies.push({
+    x: Math.random() * 360,
+    y: -40,
+    hp: level
+  });
+}
+
+// اللوب الرئيسي
+function update() {
+  ctx.clearRect(0,0,400,600);
+
+  // رسم الراجا بالسلاح
+  ctx.font = "40px serif";
+  ctx.fillText("🧍🔫", player.x - 20, player.y); // راجا شاد سلاح
+
+  // تحريك الزومبي و كيتبعو الراجا
+  zombies.forEach((z,i) => {
+    // الزومبي كيمشي تجاه اللاعب ماشي غير هابط
+    if(z.x < player.x) z.x += zombieSpeed;
+    if(z.x > player.x) z.x -= zombieSpeed;
+    z.y += zombieSpeed;
+
+    ctx.font = "35px serif";
+    ctx.fillText("🧟", z.x, z.y);
+
+    // إلا صد فالراجا
+    if(Math.abs(z.x - player.x) < 25 && Math.abs(z.y - player.y) < 25){
+      player.hp -= 10;
+      zombies.splice(i,1);
+      if(player.hp <= 0){
+        alert("متّي! النقاط: " + score);
+        document.location.reload();
+      }
+    }
+  });
+
+  // الطلقات
+  bullets.forEach((b,i) => {
+    b.y -= 8;
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(b.x-2, b.y, 4, 10);
+
+    zombies.forEach((z,j) => {
+      if(Math.abs(b.x - z.x) < 20 && Math.abs(b.y - z.y) < 20){
+        z.hp--;
+        bullets.splice(i,1);
+        if(z.hp <= 0){
+          zombies.splice(j,1);
+          score++;
+          if(score % 10 === 0){
+            level++;
+            zombieSpeed += 0.3;
+          }
+        }
+      }
+    });
+  });
+
+  ui.innerText = `النقاط: ${score} | الليفيل: ${level} | الدم: ${player.hp}`;
+  requestAnimationFrame(update);
+}
+
+setInterval(spawnZombie, 1200 - level*50);
+update();
 </script>
 </body>
 </html>
-
