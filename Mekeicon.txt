@@ -1,0 +1,12 @@
+<canvas id="c" width="512" height="512" style="background:black"></canvas>
+<script>
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+ctx.font = "400px serif";
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.fillText("🧟‍♂️", 256, 256);
+
+// مني تبان الصورة كليك يمين > Save Image As
+// وحفظها مرة 512 و مرة 192
+</script>
