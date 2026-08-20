@@ -1,110 +1,122 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zombie Shooter - طنجة</title>
-<link rel="manifest" href="manifest.json">  <!-- هادي مهمة باش PWA يخدم -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
+<title>Zombie Shooter - طنجة</title>
+<link rel="manifest" href="manifest.json">
 <style>
-  body { margin:0; background:#0a0a0a; overflow:hidden; font-family:sans-serif; color:white; text-align:center; }
-  canvas { background: #1a1a1a; display:block; margin:auto; border:2px solid #333; }
-  #ui { position:absolute; top:10px; width:100%; font-size:18px; font-weight:bold; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;overflow:hidden;font-family:sans-serif}
+  canvas{display:block;margin:auto;border:2px solid #ff0000;touch-action:none}
+  #ui{position:absolute;top:10px;width:100%;text-align:center;color:#fff;font-size:16px;font-weight:bold;text-shadow:2px 2px 4px #000}
+  #hpBar{position:absolute;top:40px;left:50%;transform:translateX(-50%);width:200px;height:10px;background:#333;border-radius:5px}
+  #hpFill{height:100%;background:lime;border-radius:5px;transition:width 0.2s}
 </style>
 </head>
 <body>
 <div id="ui">النقاط: 0 | الليفيل: 1 | الدم: 100</div>
+<div id="hpBar"><div id="hpFill"></div></div>
 <canvas id="game" width="400" height="600"></canvas>
 
 <script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const ui = document.getElementById("ui");
 
-// اللاعب الراجا
-let player = { x: 200, y: 550, hp: 100 };
+// 1. الخريطة ديالك - السطر الاول
+const mapImg = new Image();
+mapImg.src = "png.png";
 
-let zombies = [];
-let bullets = [];
-let score = 0;
-let level = 1;
-let zombieSpeed = 0.8;
+let player = { x: 200, y: 550, hp: 100, maxHp: 100 };
+let zombies = [], bullets = [], score = 0, level = 1, zombieSpeed = 0.8, gameOver = false;
+let spawnInterval;
 
-// تحريك الراجا بالماوس
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  player.x = e.clientX - rect.left;
-});
+// تحكم بالماوس والموبايل
+function movePlayer(x){ const rect = canvas.getBoundingClientRect(); player.x = Math.max(20, Math.min(380, x - rect.left)); }
+canvas.addEventListener("mousemove", e => movePlayer(e.clientX));
+canvas.addEventListener("touchmove", e => movePlayer(e.touches[0].clientX));
+canvas.addEventListener("click", () => bullets.push({ x: player.x, y: player.y - 20 }));
+canvas.addEventListener("touchstart", () => bullets.push({ x: player.x, y: player.y - 20 }));
 
-// الضرب
-canvas.addEventListener("click", () => {
-  bullets.push({ x: player.x, y: player.y - 20 });
-});
-
-// كيخرج زومبي
-function spawnZombie() {
-  zombies.push({
-    x: Math.random() * 360,
-    y: -40,
-    hp: level
-  });
+// نقاط السباون فالزناقي
+const spawnPoints = [
+  {x: 80, y: 80}, {x: 320, y: 120}, {x: 60, y: 400}, {x: 340, y: 450}
+];
+function spawnZombie(){
+  let sp = spawnPoints[Math.floor(Math.random()*spawnPoints.length)];
+  zombies.push({ x: sp.x, y: sp.y, hp: level });
 }
 
-// اللوب الرئيسي
 function update() {
+  if(gameOver) return;
   ctx.clearRect(0,0,400,600);
 
-  // رسم الراجا بالسلاح
-  ctx.font = "40px serif";
-  ctx.fillText("🧍🔫", player.x - 20, player.y); // راجا شاد سلاح
+  // رسم الخريطة + فلتر
+  if(mapImg.complete){
+    ctx.drawImage(mapImg, 0, 0, 400, 600);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(0,0,400,600);
+  }
 
-  // تحريك الزومبي و كيتبعو الراجا
-  zombies.forEach((z,i) => {
+  // الراجا بالسلاح
+  ctx.font = "40px serif";
+  ctx.fillText("🧍🔫", player.x - 20, player.y);
+
+  // الزومبي
+  for(let i=zombies.length-1; i>=0; i--){
+    let z = zombies[i];
     if(z.x < player.x) z.x += zombieSpeed;
     if(z.x > player.x) z.x -= zombieSpeed;
     z.y += zombieSpeed;
-
     ctx.font = "35px serif";
     ctx.fillText("🧟", z.x, z.y);
 
     if(Math.abs(z.x - player.x) < 25 && Math.abs(z.y - player.y) < 25){
       player.hp -= 10;
       zombies.splice(i,1);
-      if(player.hp <= 0){
-        alert("متّي! النقاط: " + score);
-        document.location.reload();
-      }
     }
-  });
+  }
 
   // الطلقات
-  bullets.forEach((b,i) => {
+  for(let i=bullets.length-1; i>=0; i--){
+    let b = bullets[i];
     b.y -= 8;
     ctx.fillStyle = "yellow";
     ctx.fillRect(b.x-2, b.y, 4, 10);
-
-    zombies.forEach((z,j) => {
-      if(Math.abs(b.x - z.x) < 20 && Math.abs(b.y - z.y) < 20){
-        z.hp--;
+    if(b.y < 0){ bullets.splice(i,1); continue; }
+    for(let j=zombies.length-1; j>=0; j--){
+      if(Math.abs(b.x - zombies[j].x) < 20 && Math.abs(b.y - zombies[j].y) < 20){
+        zombies.splice(j,1);
         bullets.splice(i,1);
-        if(z.hp <= 0){
-          zombies.splice(j,1);
-          score++;
-          if(score % 10 === 0){
-            level++;
-            zombieSpeed += 0.3;
-          }
+        score++;
+        if(score % 10 === 0){
+          level++;
+          zombieSpeed = Math.min(3.5, zombieSpeed+0.3);
+          clearInterval(spawnInterval);
+          spawnInterval = setInterval(spawnZombie, Math.max(400, 1200-level*50));
         }
+        break;
       }
-    });
-  });
+    }
+  }
 
-  ui.innerText = `النقاط: ${score} | الليفيل: ${level} | الدم: ${player.hp}`;
+  document.getElementById("hpFill").style.width = (player.hp/player.maxHp*100) + "%";
+  document.getElementById("ui").innerText = `النقاط: ${score} | الليفيل: ${level} | الدم: ${player.hp}`;
+
+  if(player.hp <= 0){
+    gameOver=true;
+    clearInterval(spawnInterval);
+    setTimeout(()=>{ alert("متّي! النقاط: "+score); location.reload(); }, 500);
+  }
   requestAnimationFrame(update);
 }
 
-setInterval(spawnZombie, 1200 - level*50);
-update();
+spawnInterval = setInterval(spawnZombie, 1200);
+mapImg.onload = update;
+mapImg.onerror = ()=>{ ctx.fillStyle="red"; ctx.font="20px sans-serif"; ctx.fillText("ما لقيناش png.png", 100, 300); update(); }
 </script>
 </body>
 </html>
